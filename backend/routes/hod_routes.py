@@ -1013,3 +1013,154 @@ def download_report_pdf():
         download_name=f"report_{r_type}_{year}_{sem}.pdf",
         mimetype="application/pdf"
     )
+
+
+# =========================================================
+# JSON API ENDPOINTS FOR REACT FRONTEND
+# =========================================================
+
+@hod_bp.route("/api/dashboard", methods=["GET"])
+@login_required
+def api_dashboard():
+    """Get HOD dashboard statistics"""
+    try:
+        # Verify this is an HOD
+        if current_user.role.role_name != "hod":
+            return jsonify({"error": "Unauthorized"}), 403
+        
+        # Total subjects for this branch
+        total_subjects = Subject.query.filter_by(branch_id=current_user.branch_id).count()
+        
+        # Total students in this branch
+        total_students = Student.query.join(Class).filter(
+            Class.branch_id == current_user.branch_id
+        ).count()
+        
+        # Check allocation windows
+        control = Control.query.first()
+        closed_allocation = control and not control.staffAllocation
+        closed_cie = control and not control.cie
+        
+        return jsonify({
+            "totalSubjects": total_subjects,
+            "totalStudents": total_students,
+            "closedAllocationWindows": closed_allocation,
+            "closedCIEWindows": closed_cie
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@hod_bp.route("/api/allocation-data", methods=["GET"])
+@login_required
+def api_allocation_data():
+    """Get staff allocation data for HOD"""
+    try:
+        if current_user.role.role_name != "hod":
+            return jsonify({"error": "Unauthorized"}), 403
+        
+        semester = request.args.get("semester", "1")
+        
+        # Get classes for this semester in HOD's branch
+        classes = Class.query.filter(
+            Class.branch_id == current_user.branch_id,
+            Class.semester == int(semester)
+        ).all()
+        
+        allocation_data = []
+        for cls in classes:
+            # Get allocations for this class
+            allocations = StaffAllocation.query.filter_by(class_id=cls.class_id).all()
+            
+            for alloc in allocations:
+                staff = User.query.get(alloc.staff_id)
+                subject = Subject.query.get(alloc.subject_id)
+                
+                allocation_data.append({
+                    "class": cls.class_name,
+                    "subject": subject.subject_name if subject else "N/A",
+                    "staff": staff.name if staff else "N/A",
+                    "allocationId": alloc.allocation_id
+                })
+        
+        return jsonify({"allocations": allocation_data}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@hod_bp.route("/api/attendance-data", methods=["GET"])
+@login_required
+def api_attendance_data():
+    """Get attendance data for HOD's department"""
+    try:
+        if current_user.role.role_name != "hod":
+            return jsonify({"error": "Unauthorized"}), 403
+        
+        semester = request.args.get("semester", "1")
+        
+        # Get attendance records
+        attendance_records = db.session.query(
+            Attendance.attendance_id,
+            Student.name,
+            Student.usn,
+            Subject.subject_name,
+            Attendance.attendance_percentage,
+            Class.class_name
+        ).join(Student).join(Subject).join(Class).filter(
+            Class.branch_id == current_user.branch_id,
+            Class.semester == int(semester)
+        ).all()
+        
+        data = []
+        for record in attendance_records:
+            data.append({
+                "id": record[0],
+                "studentName": record[1],
+                "usn": record[2],
+                "subject": record[3],
+                "percentage": float(record[4]) if record[4] else 0,
+                "class": record[5]
+            })
+        
+        return jsonify({"attendance": data}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@hod_bp.route("/api/cie-data", methods=["GET"])
+@login_required
+def api_cie_data():
+    """Get CIE marks data for HOD's department"""
+    try:
+        if current_user.role.role_name != "hod":
+            return jsonify({"error": "Unauthorized"}), 403
+        
+        semester = request.args.get("semester", "1")
+        
+        # Get CIE marks
+        cie_records = db.session.query(
+            CIEMarks.cie_marks_id,
+            Student.name,
+            Student.usn,
+            Subject.subject_name,
+            CIEMarks.cie_marks,
+            Class.class_name
+        ).join(Student).join(Subject).join(Class).filter(
+            Class.branch_id == current_user.branch_id,
+            Class.semester == int(semester)
+        ).all()
+        
+        data = []
+        for record in cie_records:
+            data.append({
+                "id": record[0],
+                "studentName": record[1],
+                "usn": record[2],
+                "subject": record[3],
+                "marks": float(record[4]) if record[4] else 0,
+                "class": record[5]
+            })
+        
+        return jsonify({"cieData": data}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

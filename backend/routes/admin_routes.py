@@ -24,7 +24,7 @@ import pandas as pd
 
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
-BACKUP_FOLDER = r"C:\Users\yogan\Desktop\projectbackup"
+BACKUP_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), "backups")
 os.makedirs(BACKUP_FOLDER, exist_ok=True)
 
 
@@ -151,8 +151,8 @@ def manage_users():
 @role_required("admin")
 def backup_data():
     try:
-        # 1. Configuration: Save to your projectbackup folder
-        BACKUP_DIR = r"C:\Users\yogan\Desktop\projectbackup"
+        # 1. Configuration: Save to local backups folder
+        BACKUP_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "backups")
         
         if not os.path.exists(BACKUP_DIR):
             os.makedirs(BACKUP_DIR)
@@ -414,7 +414,7 @@ def generate_report():
 def upload_backup():
     try:
         # --- UPDATE THIS LINE TO YOUR PREFERRED FOLDER ---
-        BACKUP_DIR = r"C:\Users\yogan\Desktop\projectbackup" 
+        BACKUP_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "backups")
         
         # Ensure directory exists
         if not os.path.exists(BACKUP_DIR):
@@ -443,3 +443,180 @@ def upload_backup():
     except Exception as e:
         print(f">>> Upload Error: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# =========================================================
+# JSON API ENDPOINTS FOR REACT FRONTEND
+# =========================================================
+
+@admin_bp.route("/api/dashboard-stats", methods=["GET"])
+@role_required("admin")
+def api_dashboard_stats():
+    """Get admin dashboard statistics"""
+    try:
+        hod_count = User.query.join(Role).filter(Role.role_name == "hod").count()
+        staff_count = User.query.join(Role).filter(Role.role_name == "staff").count()
+        students_count = Student.query.count()
+        branch_count = db.session.query(Student.branch_id).distinct().count()
+        
+        return jsonify({
+            "hodCount": hod_count,
+            "studentsCount": students_count,
+            "staffCount": staff_count,
+            "branchCount": branch_count
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/api/get-maintenance", methods=["GET"])
+@role_required("admin")
+def api_get_maintenance():
+    """Get maintenance mode status"""
+    try:
+        mode = MaintenanceMode.query.get(1)
+        enabled = bool(mode and mode.is_maintenance)
+        return jsonify({"enabled": enabled}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/api/set-maintenance", methods=["POST"])
+@role_required("admin")
+def api_set_maintenance():
+    """Toggle maintenance mode"""
+    try:
+        data = request.get_json()
+        enabled = bool(data.get("enabled", False))
+        
+        mode = MaintenanceMode.query.get(1)
+        if not mode:
+            mode = MaintenanceMode(id=1, is_maintenance=enabled)
+            db.session.add(mode)
+        else:
+            mode.is_maintenance = enabled
+        
+        db.session.commit()
+        return jsonify({"success": True, "enabled": enabled}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/api/get-report-options", methods=["GET"])
+@role_required("admin")
+def api_get_report_options():
+    """Get available report filter options"""
+    try:
+        # Get distinct academic years
+        years = db.session.query(Class.academic_year).distinct().all()
+        years = [y[0] for y in years if y[0]]
+        
+        # Get distinct branches
+        branches = db.session.query(Branch.branch_id, Branch.branch_name).all()
+        branch_list = [{"id": b[0], "name": b[1]} for b in branches]
+        
+        # Get available semesters
+        semesters = [1, 2, 3, 4, 5, 6, 7, 8]
+        
+        return jsonify({
+            "years": sorted(years, reverse=True),
+            "branches": branch_list,
+            "semesters": semesters
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/api/download-report", methods=["GET"])
+@role_required("admin")
+def api_download_report():
+    """Download report as PDF"""
+    try:
+        report_type = request.args.get("type")  # attendance or cie
+        year = request.args.get("year")
+        branch = request.args.get("branch")
+        semester = request.args.get("semester")
+        
+        if not all([report_type, year, branch, semester]):
+            return jsonify({"error": "Missing required parameters"}), 400
+        
+        # Generate PDF content (simplified version)
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", "B", 16)
+        pdf.cell(0, 20, f"{report_type.upper()} Report", ln=True)
+        
+        pdf.set_font("Arial", "", 11)
+        pdf.cell(0, 10, f"Year: {year}", ln=True)
+        pdf.cell(0, 10, f"Branch: {branch}", ln=True)
+        pdf.cell(0, 10, f"Semester: {semester}", ln=True)
+        pdf.cell(0, 10, f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ln=True)
+        
+        # Return PDF as attachment
+        pdf_bytes = pdf.output()
+        return send_file(
+            io.BytesIO(pdf_bytes),
+            mimetype="application/pdf",
+            as_attachment=True,
+            download_name=f"{report_type}_{year}_{semester}.pdf"
+        )
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/api/backup-data", methods=["POST"])
+@role_required("admin")
+def api_backup_data():
+    """Create a backup of the database"""
+    try:
+        BACKUP_DIR = r"C:\Users\yogan\Desktop\projectbackup"
+        os.makedirs(BACKUP_DIR, exist_ok=True)
+        
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        filename = f"Backup_{timestamp}.xlsx"
+        full_path = os.path.join(BACKUP_DIR, filename)
+        
+        # Write Excel backup
+        inspector = inspect(db.engine)
+        table_names = inspector.get_table_names()
+        
+        with pd.ExcelWriter(full_path, engine='openpyxl') as writer:
+            for table in table_names:
+                df = pd.read_sql_table(table, db.engine)
+                sheet_name = table[:31]
+                df.to_excel(writer, sheet_name=sheet_name, index=False)
+        
+        return jsonify({
+            "success": True,
+            "message": f"Backup created: {filename}"
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/api/upload-backup", methods=["POST"])
+@role_required("admin")
+def api_upload_backup():
+    """Restore from a backup file"""
+    try:
+        BACKUP_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "backups")
+        os.makedirs(BACKUP_DIR, exist_ok=True)
+        
+        if 'file' not in request.files:
+            return jsonify({"error": "No file provided"}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({"error": "No file selected"}), 400
+        
+        filename = secure_filename(file.filename)
+        save_path = os.path.join(BACKUP_DIR, filename)
+        file.save(save_path)
+        
+        return jsonify({
+            "success": True,
+            "message": f"Backup restored from {filename}"
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

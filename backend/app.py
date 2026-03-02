@@ -1,6 +1,7 @@
 from flask import Flask
 from config.config import Config
 from flask_migrate import Migrate
+from flask_cors import CORS
 # 1. NEW IMPORT: Get login_manager from extensions
 from extensions import db, login_manager 
 
@@ -31,6 +32,9 @@ migrate = Migrate()
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+
+    # Enable CORS for React frontend
+    CORS(app, supports_credentials=True, origins=["http://localhost:5173", "http://localhost:5174"])
 
     # Initialize Extensions
     db.init_app(app)

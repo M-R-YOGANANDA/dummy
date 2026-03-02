@@ -10,6 +10,7 @@ import os
 from sqlalchemy import text, func
 from io import BytesIO
 from datetime import datetime
+import pandas as pd
 
 staff_bp = Blueprint("staff", __name__)
 
@@ -572,11 +573,11 @@ def upload_cie_paper():
         final_name = f"{semester}_{safe_subject}.pdf"
 
     # --- 1. DEFINE BASE PATH ---
-    # Using raw string for Windows path compatibility
-    base_path = r"C:\Users\yogan\Desktop\projectbackup"
+    # Using local path relative to project
+    base_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")
     
     # --- 2. CONSTRUCT FULL PATH ---
-    # Result: C:\Users\yogan\Desktop\projectbackup\static\uploads\cie_papers\semester_X
+    # Result: ./uploads/static/uploads/cie_papers/semester_X
     upload_dir = os.path.join(base_path, "static", "uploads", "cie_papers", f"semester_{semester}")
     
     os.makedirs(upload_dir, exist_ok=True)
@@ -716,3 +717,383 @@ def staff_report_pdf():
     filename = f"report_{semester}_{safe_subject}.pdf"
 
     return send_file(buffer, as_attachment=True, download_name=filename, mimetype="application/pdf")
+
+
+# =========================================================
+# JSON API ENDPOINTS FOR REACT FRONTEND
+# =========================================================
+
+@staff_bp.route("/api/dashboard", methods=["GET"])
+@login_required
+def api_dashboard():
+    """Get staff dashboard data"""
+    try:
+        if not is_staff():
+            return jsonify({"error": "Unauthorized"}), 403
+        
+        # Get staff allocations
+        total_allocations = StaffAllocation.query.filter_by(
+            staff_id=current_user.user_id
+        ).count()
+        
+        # Get total students taught
+        student_allocations = db.session.query(
+            db.func.count(db.distinct(Student.student_id))
+        ).join(Class, Student.class_id == Class.class_id).join(
+            StaffAllocation,
+            (StaffAllocation.class_id == Class.class_id) & 
+            (StaffAllocation.staff_id == current_user.user_id)
+        ).scalar()
+        
+        total_students = student_allocations or 0
+        
+        # Check control windows
+        controls = get_active_controls(current_user.branch_id, None)
+        attendance_open = any(c.month for c in controls if hasattr(c, 'month'))
+        cie_open = any(c.cie_type for c in controls if hasattr(c, 'cie_type'))
+        
+        return jsonify({
+            "totalAllocations": total_allocations,
+            "totalStudents": total_students,
+            "attendanceWindowOpen": attendance_open,
+            "cieWindowOpen": cie_open
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@staff_bp.route("/api/allocation-students", methods=["GET"])
+@login_required
+def api_allocation_students():
+    """Get students for a staff's allocation"""
+    try:
+        if not is_staff():
+            return jsonify({"error": "Unauthorized"}), 403
+        
+        allocation_id = request.args.get("allocationId")
+        if not allocation_id:
+            return jsonify({"error": "Missing allocationId"}), 400
+        
+        # Get allocation
+        allocation = StaffAllocation.query.filter_by(
+            allocation_id=allocation_id,
+            staff_id=current_user.user_id
+        ).first()
+        
+        if not allocation:
+            return jsonify({"error": "Allocation not found"}), 404
+        
+        # Get students in this class
+        students = Student.query.filter_by(
+            class_id=allocation.class_id
+        ).all()
+        
+        student_list = []
+        for student in students:
+            student_list.append({
+                "studentId": student.student_id,
+                "name": student.name,
+                "usn": student.usn,
+                "registerNo": student.register_no
+            })
+        
+        return jsonify({
+            "allocationId": allocation_id,
+            "subjectName": allocation.subject_name,
+            "students": student_list
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@staff_bp.route("/api/submit-attendance", methods=["POST"])
+@login_required
+def api_submit_attendance():
+    """Submit attendance marks"""
+    try:
+        if not is_staff():
+            return jsonify({"error": "Unauthorized"}), 403
+        
+        data = request.get_json()
+        allocation_id = data.get("allocationId")
+        attendance_records = data.get("records", [])  # [{studentId, percentage}, ...]
+        
+        if not allocation_id or not attendance_records:
+            return jsonify({"error": "Missing required fields"}), 400
+        
+        # Verify allocation
+        allocation = StaffAllocation.query.filter_by(
+            allocation_id=allocation_id,
+            staff_id=current_user.user_id
+        ).first()
+        
+        if not allocation:
+            return jsonify({"error": "Invalid allocation"}), 403
+        
+        # Save attendance records
+        for record in attendance_records:
+            student_id = record.get("studentId")
+            percentage = record.get("percentage")
+            
+            if not student_id or percentage is None:
+                continue
+            
+            # Update or create attendance record
+            attendance = Attendance.query.filter_by(
+                student_id=student_id,
+                subject_id=allocation.subject_id
+            ).first()
+            
+            if attendance:
+                attendance.attendance_percentage = float(percentage)
+                attendance.updated_at = datetime.now()
+            else:
+                attendance = Attendance(
+                    student_id=student_id,
+                    subject_id=allocation.subject_id,
+                    attendance_percentage=float(percentage),
+                    created_at=datetime.now()
+                )
+                db.session.add(attendance)
+        
+        db.session.commit()
+        return jsonify({"success": True, "message": "Attendance submitted"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+@staff_bp.route("/api/submit-cie-marks", methods=["POST"])
+@login_required
+def api_submit_cie_marks():
+    """Submit CIE marks"""
+    try:
+        if not is_staff():
+            return jsonify({"error": "Unauthorized"}), 403
+        
+        data = request.get_json()
+        allocation_id = data.get("allocationId")
+        cie_number = data.get("cieNumber")
+        marks_records = data.get("records", [])  # [{studentId, marks}, ...]
+        
+        if not allocation_id or not cie_number or not marks_records:
+            return jsonify({"error": "Missing required fields"}), 400
+        
+        # Verify allocation
+        allocation = StaffAllocation.query.filter_by(
+            allocation_id=allocation_id,
+            staff_id=current_user.user_id
+        ).first()
+        
+        if not allocation:
+            return jsonify({"error": "Invalid allocation"}), 403
+        
+        # Save CIE marks
+        for record in marks_records:
+            student_id = record.get("studentId")
+            marks = record.get("marks")
+            
+            if not student_id or marks is None:
+                continue
+            
+            # Update or create CIE marks record
+            cie_mark = CIEMarks.query.filter_by(
+                student_id=student_id,
+                subject_id=allocation.subject_id,
+                cie_number=int(cie_number)
+            ).first()
+            
+            if cie_mark:
+                cie_mark.cie_marks = float(marks)
+                cie_mark.updated_at = datetime.now()
+            else:
+                cie_mark = CIEMarks(
+                    student_id=student_id,
+                    subject_id=allocation.subject_id,
+                    cie_number=int(cie_number),
+                    cie_marks=float(marks),
+                    created_at=datetime.now()
+                )
+                db.session.add(cie_mark)
+        
+        db.session.commit()
+        return jsonify({"success": True, "message": "CIE marks submitted"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+@staff_bp.route("/api/upload-bulk-marks", methods=["POST"])
+@login_required
+def api_upload_bulk_marks():
+    """Upload bulk marks from Excel/CSV"""
+    try:
+        if not is_staff():
+            return jsonify({"error": "Unauthorized"}), 403
+        
+        if 'file' not in request.files:
+            return jsonify({"error": "No file provided"}), 400
+        
+        file = request.files['file']
+        allocation_id = request.form.get("allocationId")
+        marks_type = request.form.get("type")  # "attendance" or "cie"
+        
+        if not allocation_id or not marks_type:
+            return jsonify({"error": "Missing required parameters"}), 400
+        
+        # Verify allocation
+        allocation = StaffAllocation.query.filter_by(
+            allocation_id=allocation_id,
+            staff_id=current_user.user_id
+        ).first()
+        
+        if not allocation:
+            return jsonify({"error": "Invalid allocation"}), 403
+        
+        # Read file
+        if file.filename.endswith('.xlsx'):
+            df = pd.read_excel(file)
+        elif file.filename.endswith('.csv'):
+            df = pd.read_csv(file)
+        else:
+            return jsonify({"error": "Unsupported file format. Use Excel or CSV."}), 400
+        
+        # Process marks based on type
+        success_count = 0
+        for _, row in df.iterrows():
+            student_id = row.get('student_id') or row.get('studentId')
+            
+            if marks_type == "attendance":
+                percentage = row.get('attendance_percentage') or row.get('percentage')
+                if student_id and percentage:
+                    attendance = Attendance.query.filter_by(
+                        student_id=student_id,
+                        subject_id=allocation.subject_id
+                    ).first()
+                    if attendance:
+                        attendance.attendance_percentage = float(percentage)
+                    else:
+                        attendance = Attendance(
+                            student_id=student_id,
+                            subject_id=allocation.subject_id,
+                            attendance_percentage=float(percentage)
+                        )
+                        db.session.add(attendance)
+                    success_count += 1
+            
+            elif marks_type == "cie":
+                marks = row.get('cie_marks') or row.get('marks')
+                cie_number = int(request.form.get("cieNumber", 1))
+                if student_id and marks:
+                    cie_mark = CIEMarks.query.filter_by(
+                        student_id=student_id,
+                        subject_id=allocation.subject_id,
+                        cie_number=cie_number
+                    ).first()
+                    if cie_mark:
+                        cie_mark.cie_marks = float(marks)
+                    else:
+                        cie_mark = CIEMarks(
+                            student_id=student_id,
+                            subject_id=allocation.subject_id,
+                            cie_number=cie_number,
+                            cie_marks=float(marks)
+                        )
+                        db.session.add(cie_mark)
+                    success_count += 1
+        
+        db.session.commit()
+        return jsonify({
+            "success": True,
+            "message": f"Uploaded {success_count} records successfully"
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+@staff_bp.route("/api/generate-report", methods=["POST"])
+@login_required
+def api_generate_report():
+    """Generate PDF report for an allocation"""
+    try:
+        if not is_staff():
+            return jsonify({"error": "Unauthorized"}), 403
+        
+        data = request.get_json()
+        allocation_id = data.get("allocationId")
+        
+        if not allocation_id:
+            return jsonify({"error": "Missing allocationId"}), 400
+        
+        # Verify allocation
+        allocation = StaffAllocation.query.filter_by(
+            allocation_id=allocation_id,
+            staff_id=current_user.user_id
+        ).first()
+        
+        if not allocation:
+            return jsonify({"error": "Invalid allocation"}), 403
+        
+        # Build report data
+        report, error = build_staff_report(allocation)
+        if error:
+            return jsonify({"error": error}), 400
+        
+        # Generate PDF
+        try:
+            from reportlab.lib.pagesizes import A4
+            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+            from reportlab.lib import colors
+            from reportlab.lib.styles import getSampleStyleSheet
+        except ImportError:
+            return jsonify({"error": "PDF generator not installed"}), 500
+        
+        subject = report["subject"]
+        class_row = report["class_row"]
+        semester = extract_semester_from_class(class_row.class_name if class_row else None)
+        academic_year = class_row.academic_year if class_row else ""
+        now_text = datetime.now().strftime("%Y-%m-%d %H:%M")
+        
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4)
+        styles = getSampleStyleSheet()
+        
+        elements = [
+            Paragraph("CPC Polytechnic Mysuru", styles["Title"]),
+            Paragraph(f"Attendance & CIE Report - {subject.subject_name}", styles["Heading2"]),
+            Paragraph(f"Semester: {semester} | Academic Year: {academic_year} | Generated: {now_text}", styles["Normal"]),
+            Spacer(1, 12)
+        ]
+        
+        table_data = [["Reg No", "Student Name", "Attendance %", "CIE Marks"]]
+        for s in report["students"]:
+            table_data.append([
+                s["register_no"],
+                s["name"],
+                f"{s['attendance_percent']}%",
+                str(s["cie_total"])
+            ])
+        
+        if len(table_data) == 1:
+            table_data.append(["--", "No data", "--", "--"])
+        
+        table = Table(table_data)
+        table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ]))
+        
+        elements.append(table)
+        doc.build(elements)
+        buffer.seek(0)
+        
+        return send_file(
+            buffer,
+            as_attachment=True,
+            download_name=f"report_{semester}_{subject.subject_name}.pdf",
+            mimetype="application/pdf"
+        )
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
