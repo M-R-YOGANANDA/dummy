@@ -1,0 +1,12 @@
+Flask
+Flask-SQLAlchemy
+Flask-Migrate
+python-dotenv
+PyMySQL
+flask-login
+reportlab
+pandas
+openpyxl
+pymupdf 
+matplotlib 
+reportlab

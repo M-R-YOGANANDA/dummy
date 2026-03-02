@@ -1,0 +1,398 @@
+
+mysql>  show tables;
++------------------------------------+
+| Tables_in_academic_data_management |
++------------------------------------+
+| alembic_version                    |
+| attendance                         |
+| backup_logs                        |
+| batches                            |
+| branches                           |
+| cie_config                         |
+| cie_marks                          |
+| cie_papers                         |
+| classes                            |
+| controls                           |
+| department_controls                |
+| maintenance_mode                   |
+| roles                              |
+| staff_allocations                  |
+| students                           |
+| subjects                           |
+| users                              |
++------------------------------------+
+17 rows in set (0.03 sec)
+
+mysql> DESC alembic_version;
++-------------+-------------+------+-----+---------+-------+
+| Field       | Type        | Null | Key | Default | Extra |
++-------------+-------------+------+-----+---------+-------+
+| version_num | varchar(32) | NO   | PRI | NULL    |       |
++-------------+-------------+------+-----+---------+-------+
+1 row in set (0.03 sec)
+
+mysql> DESC attendance;
++------------------+------+------+-----+---------+----------------+
+| Field            | Type | Null | Key | Default | Extra          |
++------------------+------+------+-----+---------+----------------+
+| attendance_id    | int  | NO   | PRI | NULL    | auto_increment |
+| student_id       | int  | NO   | UNI | NULL    |                |
+| staff_id         | int  | NO   | MUL | NULL    |                |
+| subject_id       | int  | NO   | MUL | NULL    |                |
+| total_classes    | int  | NO   |     | 0       |                |
+| classes_attended | int  | NO   |     | 0       |                |
++------------------+------+------+-----+---------+----------------+
+6 rows in set (0.00 sec)
+
+mysql> DESC backup_logs;
++-------------+--------------+------+-----+---------+-------------------+
+| Field       | Type         | Null | Key | Default | Extra             |
++-------------+--------------+------+-----+---------+-------------------+
+| backup_id   | int          | NO   | PRI | NULL    | auto_increment    |
+| backup_type | varchar(50)  | YES  |     | NULL    |                   |
+| backup_path | varchar(255) | YES  |     | NULL    |                   |
+| created_at  | datetime     | YES  |     | now()   | DEFAULT_GENERATED |
++-------------+--------------+------+-----+---------+-------------------+
+4 rows in set (0.00 sec)
+
+mysql> DESC batches;
++------------+-------------+------+-----+---------+----------------+
+| Field      | Type        | Null | Key | Default | Extra          |
++------------+-------------+------+-----+---------+----------------+
+| batch_id   | int         | NO   | PRI | NULL    | auto_increment |
+| class_id   | int         | NO   | MUL | NULL    |                |
+| batch_name | varchar(10) | NO   |     | NULL    |                |
++------------+-------------+------+-----+---------+----------------+
+3 rows in set (0.00 sec)
+
+mysql> DESC branches;
++-------------+--------------+------+-----+---------+----------------+
+| Field       | Type         | Null | Key | Default | Extra          |
++-------------+--------------+------+-----+---------+----------------+
+| branch_id   | int          | NO   | PRI | NULL    | auto_increment |
+| branch_code | varchar(10)  | NO   | UNI | NULL    |                |
+| branch_name | varchar(100) | NO   |     | NULL    |                |
++-------------+--------------+------+-----+---------+----------------+
+3 rows in set (0.01 sec)
+
+mysql> DESC cie_config;
++------------+------+------+-----+---------+----------------+
+| Field      | Type | Null | Key | Default | Extra          |
++------------+------+------+-----+---------+----------------+
+| cie_id     | int  | NO   | PRI | NULL    | auto_increment |
+| branch_id  | int  | NO   | MUL | NULL    |                |
+| cie_number | int  | NO   |     | NULL    |                |
+| max_marks  | int  | NO   |     | NULL    |                |
++------------+------+------+-----+---------+----------------+
+4 rows in set (0.00 sec)
+
+mysql> DESC cie_marks;
++----------------+------+------+-----+---------+----------------+
+| Field          | Type | Null | Key | Default | Extra          |
++----------------+------+------+-----+---------+----------------+
+| cie_mark_id    | int  | NO   | PRI | NULL    | auto_increment |
+| student_id     | int  | NO   | MUL | NULL    |                |
+| cie_id         | int  | NO   | MUL | NULL    |                |
+| marks_obtained | int  | NO   |     | NULL    |                |
+| entered_by     | int  | NO   | MUL | NULL    |                |
++----------------+------+------+-----+---------+----------------+
+5 rows in set (0.00 sec)
+
+mysql> DESC cie_papers;
++--------------+--------------+------+-----+-----------------+-------------------+
+| Field        | Type         | Null | Key | Default         | Extra             |
++--------------+--------------+------+-----+-----------------+-------------------+
+| paper_id     | int          | NO   | PRI | NULL            | auto_increment    |
+| staff_id     | int          | NO   | MUL | NULL            |                   |
+| branch_id    | int          | NO   | MUL | NULL            |                   |
+| semester     | int          | NO   |     | NULL            |                   |
+| file_path    | varchar(255) | NO   |     | NULL            |                   |
+| uploaded_at  | datetime     | YES  |     | now()           | DEFAULT_GENERATED |
+| subject_code | varchar(50)    | NO   |     | Unknown Subject |                   |
+| is_displayed | int          | YES  |     | 0               |                   |
++--------------+--------------+------+-----+-----------------+-------------------+
+8 rows in set (0.00 sec)
+
+mysql> DESC classes;
++---------------+-------------+------+-----+---------+----------------+
+| Field         | Type        | Null | Key | Default | Extra          |
++---------------+-------------+------+-----+---------+----------------+
+| class_id      | int         | NO   | PRI | NULL    | auto_increment |
+| branch_id     | int         | NO   | MUL | NULL    |                |
+| class_name    | varchar(20) | NO   |     | NULL    |                |
+| academic_year | varchar(9)  | NO   |     | NULL    |                |
++---------------+-------------+------+-----+---------+----------------+
+4 rows in set (0.01 sec)
+
+mysql> DESC department_controls;
++---------------+-------------+------+-----+-------------------+-----------------------------------------------+
+| Field         | Type        | Null | Key | Default           | Extra                                         |
++---------------+-------------+------+-----+-------------------+-----------------------------------------------+
+| control_id    | int         | NO   | PRI | NULL              | auto_increment                                |
+| branch_id     | int         | YES  |     | NULL              |                                               |
+| setting_key   | varchar(50) | YES  |     | NULL              |                                               |
+| setting_value | json        | YES  |     | NULL              |                                               |
+| updated_at    | timestamp   | YES  |     | CURRENT_TIMESTAMP | DEFAULT_GENERATED on update CURRENT_TIMESTAMP |
++---------------+-------------+------+-----+-------------------+-----------------------------------------------+
+5 rows in set (0.01 sec)
+
+mysql> DESC maintenance_mode;
++----------------+------------+------+-----+---------+-------+
+| Field          | Type       | Null | Key | Default | Extra |
++----------------+------------+------+-----+---------+-------+
+| id             | int        | NO   | PRI | NULL    |       |
+| is_maintenance | tinyint(1) | YES  |     | 0       |       |
++----------------+------------+------+-----+---------+-------+
+2 rows in set (0.00 sec)
+
+mysql> DESC roles;
++-----------+-------------+------+-----+---------+----------------+
+| Field     | Type        | Null | Key | Default | Extra          |
++-----------+-------------+------+-----+---------+----------------+
+| role_id   | int         | NO   | PRI | NULL    | auto_increment |
+| role_name | varchar(20) | NO   | UNI | NULL    |                |
++-----------+-------------+------+-----+---------+----------------+
+2 rows in set (0.00 sec)
+
+mysql> DESC staff_allocations;
++---------------+--------------+------+-----+---------+-------------------+
+| Field         | Type         | Null | Key | Default | Extra             |
++---------------+--------------+------+-----+---------+-------------------+
+| allocation_id | int          | NO   | PRI | NULL    | auto_increment    |
+| staff_id      | int          | NO   | MUL | NULL    |                   |
+| class_id      | int          | NO   | MUL | NULL    |                   |
+| batch_id      | int          | YES  | MUL | NULL    |                   |
+| subject_name  | varchar(100) | YES  |     | NULL    |                   |
+| allocated_at  | datetime     | YES  |     | now()   | DEFAULT_GENERATED |
++---------------+--------------+------+-----+---------+-------------------+
+6 rows in set (0.00 sec)
+
+mysql> DESC students;
++-------------+--------------+------+-----+---------+----------------+
+| Field       | Type         | Null | Key | Default | Extra          |
++-------------+--------------+------+-----+---------+----------------+
+| student_id  | int          | NO   | PRI | NULL    | auto_increment |
+| register_no | varchar(20)  | NO   | UNI | NULL    |                |
+| name        | varchar(100) | NO   |     | NULL    |                |
+| branch_id   | int          | NO   | MUL | NULL    |                |
+| class_id    | int          | NO   | MUL | NULL    |                |
+| batch_id    | int          | YES  | MUL | NULL    |                |
+| is_active   | tinyint(1)   | YES  |     | NULL    |                |
++-------------+--------------+------+-----+---------+----------------+
+7 rows in set (0.01 sec)
+
+mysql> DESC subjects;
++---------------+--------------+------+-----+-------------------+-------------------+
+| Field         | Type         | Null | Key | Default           | Extra             |
++---------------+--------------+------+-----+-------------------+-------------------+
+| subject_id    | int          | NO   | PRI | NULL              | auto_increment    |
+| subject_code  | varchar(20)  | NO   | UNI | NULL              |                   |
+| subject_name  | varchar(100) | NO   |     | NULL              |                   |
+| semester      | int          | NO   |     | NULL              |                   |
+| syllabus_name | varchar(100) | NO   |     | NULL              |                   |
+| branch_id     | int          | NO   | MUL | NULL              |                   |
+| is_active     | tinyint(1)   | YES  |     | 1                 |                   |
+| created_at    | datetime     | YES  |     | CURRENT_TIMESTAMP | DEFAULT_GENERATED |
++---------------+--------------+------+-----+-------------------+-------------------+
+8 rows in set (0.00 sec)
+
+mysql> DESC users;
++---------------+--------------+------+-----+---------+-------------------+
+| Field         | Type         | Null | Key | Default | Extra             |
++---------------+--------------+------+-----+---------+-------------------+
+| user_id       | int          | NO   | PRI | NULL    | auto_increment    |
+| username      | varchar(50)  | NO   | UNI | NULL    |                   |
+| password_hash | varchar(255) | NO   |     | NULL    |                   |
+| role_id       | int          | NO   | MUL | NULL    |                   |
+| branch_id     | int          | NO   | MUL | NULL    |                   |
+| is_active     | tinyint(1)   | YES  |     | NULL    |                   |
+| created_at    | datetime     | YES  |     | now()   | DEFAULT_GENERATED |
++---------------+--------------+------+-----+---------+-------------------+
+7 rows in set (0.00 sec)
+
+mysql>
+
+mysql> DESC controls;
++-------------+--------------+------+-----+-------------------+-------------------+
+| Field       | Type         | Null | Key | Default           | Extra             |
++-------------+--------------+------+-----+-------------------+-------------------+
+| control_id  | int          | NO   | PRI | NULL              | auto_increment    |
+| branch_id   | int          | NO   | MUL | NULL              |                   |
+| control_type| varchar(20)  | NO   |     | NULL              |                   |
+| semester    | int          | YES  |     | NULL              |                   |
+| month       | varchar(2)   | YES  |     | NULL              |                   |
+| cie_type    | varchar(100) | YES  |     | NULL              |                   |
+| is_active   | tinyint(1)   | YES  |     | 1                 |                   |
+| created_at  | datetime     | YES  |     | CURRENT_TIMESTAMP | DEFAULT_GENERATED |
+| updated_at  | datetime     | YES  |     | CURRENT_TIMESTAMP | DEFAULT_GENERATED |
++-------------+--------------+------+-----+-------------------+-------------------+
+9 rows in set (0.00 sec)
+
+mysql>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+this is the new database schema
+
+mysql> use academic_data_management
+Database changed
+mysql> show tables;
++------------------------------------+
+| Tables_in_academic_data_management |
++------------------------------------+
+| alembic_version                    |
+| attendance                         |
+| backup_logs                        |
+| batches                            |
+| branches                           |
+| cie_config                         |
+| cie_marks                          |
+| cie_papers                         |
+| classes                            |
+| controls                           |
+| department_controls                |
+| maintenance_mode                   |
+| roles                              |
+| staff_allocations                  |
+| students                           |
+| subjects                           |
+| users                              |
++------------------------------------+
+17 rows in set (0.03 sec)
+
+mysql> SELECT
+    ->     table_name,
+    ->     column_name,
+    ->     column_type,
+    ->     is_nullable,
+    ->     column_key,
+    ->     column_default,
+    ->     extra
+    -> FROM information_schema.columns
+    -> WHERE table_schema = DATABASE()
+    ->   AND table_name IN (
+    ->     'alembic_version',
+    ->     'attendance',
+    ->     'backup_logs',
+    ->     'batches',
+    ->     'branches',
+    ->     'cie_config',
+    ->     'cie_marks',
+    ->     'cie_papers',
+    ->     'classes',
+    ->     'controls',
+    ->     'department_controls',
+    ->     'maintenance_mode',
+    ->     'roles',
+    ->     'staff_allocations',
+    ->     'students',
+    ->     'subjects',
+    ->     'users'
+    -> )
+    -> ORDER BY table_name, ordinal_position;
++---------------------+------------------+--------------+-------------+------------+-------------------+-----------------------------------------------+
+| TABLE_NAME          | COLUMN_NAME      | COLUMN_TYPE  | IS_NULLABLE | COLUMN_KEY | COLUMN_DEFAULT    | EXTRA                                         |
++---------------------+------------------+--------------+-------------+------------+-------------------+-----------------------------------------------+
+| alembic_version     | version_num      | varchar(32)  | NO          | PRI        | NULL              |                                               |
+| attendance          | attendance_id    | int          | NO          | PRI        | NULL              | auto_increment                                |
+| attendance          | student_id       | int          | NO          | UNI        | NULL              |                                               |
+| attendance          | staff_id         | int          | NO          | MUL        | NULL              |                                               |
+| attendance          | subject_id       | int          | NO          | MUL        | NULL              |                                               |
+| attendance          | total_classes    | int          | NO          |            | 0                 |                                               |
+| attendance          | classes_attended | int          | NO          |            | 0                 |                                               |
+| backup_logs         | backup_id        | int          | NO          | PRI        | NULL              | auto_increment                                |
+| backup_logs         | backup_type      | varchar(50)  | YES         |            | NULL              |                                               |
+| backup_logs         | backup_path      | varchar(255) | YES         |            | NULL              |                                               |
+| backup_logs         | created_at       | datetime     | YES         |            | now()             | DEFAULT_GENERATED                             |
+| batches             | batch_id         | int          | NO          | PRI        | NULL              | auto_increment                                |
+| batches             | class_id         | int          | NO          | MUL        | NULL              |                                               |
+| batches             | batch_name       | varchar(10)  | NO          |            | NULL              |                                               |
+| branches            | branch_id        | int          | NO          | PRI        | NULL              | auto_increment                                |
+| branches            | branch_code      | varchar(10)  | NO          | UNI        | NULL              |                                               |
+| branches            | branch_name      | varchar(100) | NO          |            | NULL              |                                               |
+| cie_config          | cie_id           | int          | NO          | PRI        | NULL              | auto_increment                                |
+| cie_config          | branch_id        | int          | NO          | MUL        | NULL              |                                               |
+| cie_config          | cie_number       | int          | NO          |            | NULL              |                                               |
+| cie_config          | max_marks        | int          | NO          |            | NULL              |                                               |
+| cie_marks           | cie_mark_id      | int          | NO          | PRI        | NULL              | auto_increment                                |
+| cie_marks           | student_id       | int          | NO          | MUL        | NULL              |                                               |
+| cie_marks           | cie_id           | int          | NO          | MUL        | NULL              |                                               |
+| cie_marks           | marks_obtained   | int          | NO          |            | NULL              |                                               |
+| cie_marks           | entered_by       | int          | NO          | MUL        | NULL              |                                               |
+| cie_papers          | paper_id         | int          | NO          | PRI        | NULL              | auto_increment                                |
+| cie_papers          | staff_id         | int          | NO          | MUL        | NULL              |                                               |
+| cie_papers          | branch_id        | int          | NO          | MUL        | NULL              |                                               |
+| cie_papers          | semester         | int          | NO          |            | NULL              |                                               |
+| cie_papers          | file_path        | varchar(255) | NO          |            | NULL              |                                               |
+| cie_papers          | uploaded_at      | datetime     | YES         |            | now()             | DEFAULT_GENERATED                             |
+| cie_papers          | subject_code     | varchar(50)  | NO          |            | Unknown Subject   |                                               |
+| cie_papers          | is_displayed     | int          | YES         |            | 0                 |                                               |
+| classes             | class_id         | int          | NO          | PRI        | NULL              | auto_increment                                |
+| classes             | branch_id        | int          | NO          | MUL        | NULL              |                                               |
+| classes             | class_name       | varchar(20)  | NO          |            | NULL              |                                               |
+| classes             | academic_year    | varchar(9)   | NO          |            | NULL              |                                               |
+| controls            | control_id       | int          | NO          | PRI        | NULL              | auto_increment                                |
+| controls            | branch_id        | int          | NO          | MUL        | NULL              |                                               |
+| controls            | control_type     | varchar(20)  | NO          |            | NULL              |                                               |
+| controls            | semester         | int          | YES         |            | NULL              |                                               |
+| controls            | month            | varchar(2)   | YES         |            | NULL              |                                               |
+| controls            | cie_type         | varchar(100) | YES         |            | NULL              |                                               |
+| controls            | is_active        | tinyint(1)   | YES         |            | 1                 |                                               |
+| controls            | created_at       | datetime     | YES         |            | CURRENT_TIMESTAMP | DEFAULT_GENERATED                             |
+| controls            | updated_at       | datetime     | YES         |            | CURRENT_TIMESTAMP | DEFAULT_GENERATED                             |
+| department_controls | control_id       | int          | NO          | PRI        | NULL              | auto_increment                                |
+| department_controls | branch_id        | int          | YES         |            | NULL              |                                               |
+| department_controls | setting_key      | varchar(50)  | YES         |            | NULL              |                                               |
+| department_controls | setting_value    | json         | YES         |            | NULL              |                                               |
+| department_controls | updated_at       | timestamp    | YES         |            | CURRENT_TIMESTAMP | DEFAULT_GENERATED on update CURRENT_TIMESTAMP |
+| maintenance_mode    | id               | int          | NO          | PRI        | NULL              |                                               |
+| maintenance_mode    | is_maintenance   | tinyint(1)   | YES         |            | 0                 |                                               |
+| roles               | role_id          | int          | NO          | PRI        | NULL              | auto_increment                                |
+| roles               | role_name        | varchar(20)  | NO          | UNI        | NULL              |                                               |
+| staff_allocations   | allocation_id    | int          | NO          | PRI        | NULL              | auto_increment                                |
+| staff_allocations   | staff_id         | int          | NO          | MUL        | NULL              |                                               |
+| staff_allocations   | class_id         | int          | NO          | MUL        | NULL              |                                               |
+| staff_allocations   | batch_id         | int          | YES         | MUL        | NULL              |                                               |
+| staff_allocations   | subject_name     | varchar(100) | YES         |            | NULL              |                                               |
+| staff_allocations   | allocated_at     | datetime     | YES         |            | now()             | DEFAULT_GENERATED                             |
+| students            | student_id       | int          | NO          | PRI        | NULL              | auto_increment                                |
+| students            | register_no      | varchar(20)  | NO          | UNI        | NULL              |                                               |
+| students            | name             | varchar(100) | NO          |            | NULL              |                                               |
+| students            | branch_id        | int          | NO          | MUL        | NULL              |                                               |
+| students            | class_id         | int          | NO          | MUL        | NULL              |                                               |
+| students            | batch_id         | int          | YES         | MUL        | NULL              |                                               |
+| students            | is_active        | tinyint(1)   | YES         |            | NULL              |                                               |
+| subjects            | subject_id       | int          | NO          | PRI        | NULL              | auto_increment                                |
+| subjects            | subject_code     | varchar(20)  | NO          | UNI        | NULL              |                                               |
+| subjects            | subject_name     | varchar(100) | NO          |            | NULL              |                                               |
+| subjects            | semester         | int          | NO          |            | NULL              |                                               |
+| subjects            | syllabus_name    | varchar(100) | NO          |            | NULL              |                                               |
+| subjects            | branch_id        | int          | NO          | MUL        | NULL              |                                               |
+| subjects            | is_active        | tinyint(1)   | YES         |            | 1                 |                                               |
+| subjects            | created_at       | datetime     | YES         |            | CURRENT_TIMESTAMP | DEFAULT_GENERATED                             |
+| users               | user_id          | int          | NO          | PRI        | NULL              | auto_increment                                |
+| users               | username         | varchar(50)  | NO          | UNI        | NULL              |                                               |
+| users               | password_hash    | varchar(255) | NO          |            | NULL              |                                               |
+| users               | role_id          | int          | NO          | MUL        | NULL              |                                               |
+| users               | branch_id        | int          | NO          | MUL        | NULL              |                                               |
+| users               | is_active        | tinyint(1)   | YES         |            | NULL              |                                               |
+| users               | created_at       | datetime     | YES         |            | now()             | DEFAULT_GENERATED                             |
++---------------------+------------------+--------------+-------------+------------+-------------------+-----------------------------------------------+
+84 rows in set (0.01 sec)
+
+mysql>
+
