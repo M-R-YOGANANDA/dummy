@@ -19,5 +19,5 @@ class Config:
     # Session Configuration for CORS/credentials
     SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
     SESSION_COOKIE_HTTPONLY = True
-    SESSION_COOKIE_SAMESITE = 'Lax'  # Allows cookies with CORS requests
+    SESSION_COOKIE_SAMESITE = 'None'  # Allow cross-site cookies (development)
     PERMANENT_SESSION_LIFETIME = 86400  # 24 hours
