@@ -47,15 +47,15 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-100 to-slate-200 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-xl shadow-xl p-12 animate-fadeIn">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-primary-100 flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-12 animate-fadeIn border border-primary-100">
         {/* Header */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-primary-900 rounded-lg text-white text-4xl mb-4">
-            🏛️
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-primary-600 to-primary-700 rounded-xl text-white text-4xl mb-4 shadow-lg">
+            🎓
           </div>
-          <h1 className="text-2xl font-bold text-primary-900 mb-2">Academic Data Management</h1>
-          <p className="text-slate-600 text-sm">Secure Role-Based Access</p>
+          <h1 className="text-3xl font-bold text-primary-900 mb-2">Academic Portal</h1>
+          <p className="text-primary-600 text-sm font-medium">Secure Role-Based Access System</p>
         </div>
 
         {/* Alerts */}
@@ -66,7 +66,7 @@ export function LoginPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Username */}
           <div>
-            <label className="block text-sm font-medium text-primary-900 mb-2">Username</label>
+            <label className="block text-sm font-semibold text-primary-900 mb-2">Username</label>
             <input
               type="text"
               value={username}
@@ -77,7 +77,7 @@ export function LoginPage() {
               className={`w-full px-4 py-3 border-2 rounded-lg transition-all focus:outline-none ${
                 errors.username
                   ? 'border-error bg-red-50 focus:border-error'
-                  : 'border-slate-300 bg-slate-50 focus:border-success focus:bg-white'
+                  : 'border-primary-200 bg-primary-50 focus:border-primary-500 focus:bg-white'
               }`}
               placeholder="Enter your username"
               disabled={loading}
@@ -87,7 +87,7 @@ export function LoginPage() {
 
           {/* Password */}
           <div>
-            <label className="block text-sm font-medium text-primary-900 mb-2">Password</label>
+            <label className="block text-sm font-semibold text-primary-900 mb-2">Password</label>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
@@ -99,7 +99,7 @@ export function LoginPage() {
                 className={`w-full px-4 py-3 border-2 rounded-lg transition-all focus:outline-none ${
                   errors.password
                     ? 'border-error bg-red-50 focus:border-error'
-                    : 'border-slate-300 bg-slate-50 focus:border-success focus:bg-white'
+                    : 'border-primary-200 bg-primary-50 focus:border-primary-500 focus:bg-white'
                 }`}
                 placeholder="Enter your password"
                 disabled={loading}
@@ -107,7 +107,7 @@ export function LoginPage() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-xl hover:opacity-60 transition-opacity"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-xl hover:opacity-60 transition-opacity text-primary-600"
                 disabled={loading}
               >
                 {showPassword ? '🙈' : '👁️'}
@@ -120,7 +120,7 @@ export function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-8 text-lg shadow-md"
+            className="w-full py-3 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-bold rounded-lg transition-all disabled:from-primary-600 disabled:to-primary-700 disabled:opacity-75 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-8 text-lg shadow-lg hover:shadow-xl"
           >
             {loading && (
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -130,7 +130,7 @@ export function LoginPage() {
         </form>
 
         {/* Footer */}
-        <p className="text-center text-slate-500 text-xs mt-8">Authorized users only</p>
+        <p className="text-center text-primary-600 text-xs mt-8 font-medium">🔒 Authorized users only</p>
       </div>
 
       <style>{`

@@ -287,13 +287,13 @@ export function AdminDashboard() {
             <Card>
               <h3 className="text-lg font-semibold text-primary-900 mb-4">Restore from Backup</h3>
               <div className="mb-4">
-                <label className="block mb-2 text-sm font-medium text-slate-700">Select Backup File</label>
+                <label className="block mb-2 text-sm font-semibold text-primary-900">Select Backup File</label>
                 <input
                   type="file"
                   onChange={handleFileUpload}
                   accept=".zip,.tar,.gz"
                   disabled={loading}
-                  className="block w-full text-sm text-slate-500 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-success file:text-white hover:file:bg-emerald-600"
+                  className="block w-full text-sm text-primary-600 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gradient-to-r file:from-primary-600 file:to-primary-700 file:text-white hover:file:from-primary-700 hover:file:to-primary-800 cursor-pointer"
                 />
               </div>
             </Card>
