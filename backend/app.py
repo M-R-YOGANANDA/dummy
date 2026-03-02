@@ -29,12 +29,81 @@ from models.subjects import Subject   # Importing the subjects model to ensure i
 
 migrate = Migrate()
 
+def seed_test_data():
+    """Initialize database with test data"""
+    # Check if data already exists
+    if User.query.first():
+        return  # Data already seeded
+    
+    # Create roles
+    admin_role = Role(role_id=1, role_name="admin")
+    hod_role = Role(role_id=2, role_name="hod")
+    staff_role = Role(role_id=3, role_name="staff")
+    
+    db.session.add_all([admin_role, hod_role, staff_role])
+    db.session.commit()
+    
+    # Create test users
+    from werkzeug.security import generate_password_hash
+    
+    admin = User(
+        user_id=1,
+        username="admin",
+        password_hash=generate_password_hash("password123"),
+        role_id=1,
+        name="Admin User",
+        email="admin@example.com",
+        is_active=True
+    )
+    
+    hod = User(
+        user_id=2,
+        username="hod1",
+        password_hash=generate_password_hash("password123"),
+        role_id=2,
+        branch_id=1,
+        name="HOD User",
+        email="hod@example.com",
+        is_active=True
+    )
+    
+    staff = User(
+        user_id=3,
+        username="staff1",
+        password_hash=generate_password_hash("password123"),
+        role_id=3,
+        branch_id=1,
+        name="Staff User",
+        email="staff@example.com",
+        is_active=True
+    )
+    
+    db.session.add_all([admin, hod, staff])
+    db.session.commit()
+    
+    # Create branch
+    branch = Branch(branch_id=1, branch_code="CSE", branch_name="Computer Science")
+    db.session.add(branch)
+    db.session.commit()
+    
+    # Create maintenance mode record
+    from models.maintain import MaintenanceMode
+    maintenance = MaintenanceMode(id=1, is_maintenance=False)
+    db.session.add(maintenance)
+    db.session.commit()
+
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    # Enable CORS for React frontend
-    CORS(app, supports_credentials=True, origins=["http://localhost:5173", "http://localhost:5174"])
+    # Enable CORS for React frontend with proper credentials support
+    CORS(app, 
+         supports_credentials=True, 
+         origins=["http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:5173", "http://127.0.0.1:5174"],
+         allow_headers=["Content-Type", "Authorization"],
+         expose_headers=["Content-Type"],
+         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    )
 
     # Initialize Extensions
     db.init_app(app)
@@ -55,6 +124,11 @@ def create_app():
     app.register_blueprint(admin_bp)
     app.register_blueprint(hod_bp)
     app.register_blueprint(staff_bp)
+
+    # Create database tables and seed data
+    with app.app_context():
+        db.create_all()
+        seed_test_data()
 
     return app
 

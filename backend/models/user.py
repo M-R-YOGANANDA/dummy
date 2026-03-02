@@ -8,6 +8,8 @@ class User(UserMixin, db.Model):
     user_id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
+    name = db.Column(db.String(100), nullable=True)
+    email = db.Column(db.String(120), nullable=True)
 
     role_id = db.Column(
         db.Integer,
@@ -18,7 +20,7 @@ class User(UserMixin, db.Model):
     branch_id = db.Column(
         db.Integer,
         db.ForeignKey("branches.branch_id"),
-        nullable=False
+        nullable=True
     )
 
     is_active = db.Column(db.Boolean, default=True)

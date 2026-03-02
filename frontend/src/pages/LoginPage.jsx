@@ -120,7 +120,7 @@ export function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-primary-900 text-white font-semibold rounded-lg hover:bg-primary-800 transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-8"
+            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-8 text-lg shadow-md"
           >
             {loading && (
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />

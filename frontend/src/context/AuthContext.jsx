@@ -12,10 +12,13 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        // Only make the API call if there's an active session
+        // This prevents unnecessary 404 errors on initial page load
         const response = await authService.getCurrentUser();
         setUser(response.data.user);
       } catch (err) {
-        console.log('Not authenticated');
+        // User is not authenticated, that's okay
+        setUser(null);
       } finally {
         setLoading(false);
       }
