@@ -99,7 +99,7 @@ def create_app():
     # Enable CORS for React frontend with proper credentials support
     CORS(app, 
          supports_credentials=True, 
-         origins=["http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:5173", "http://127.0.0.1:5174"],
+         origins=["http://localhost:5175", "http://localhost:5174", "http://127.0.0.1:5173", "http://127.0.0.1:5174"],
          allow_headers=["Content-Type", "Authorization"],
          expose_headers=["Content-Type"],
          methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
