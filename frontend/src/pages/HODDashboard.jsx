@@ -1,17 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import {
-  Header,
-  Sidebar,
-  MainContent,
-  PageHeader,
-  Card,
-  Button,
-  DashboardGrid,
-  DashboardCard,
-  Select,
-  Table,
-  Alert,
+  Header, Sidebar, MainContent, PageHeader, Card,
+  Button, DashboardGrid, DashboardCard, Select, Table, Alert,
 } from '../components/Layout';
 import { hodService } from '../services/api';
 
@@ -22,32 +13,18 @@ export function HODDashboard() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
-  // Dashboard stats
-  const [stats, setStats] = useState({
-    totalSubjects: 0,
-    totalStudents: 0,
-    closedAllocationWindows: 0,
-    closedCIEWindows: 0,
-  });
-
-  // Staff allocations
+  const [stats, setStats] = useState({ totalSubjects: 0, totalStudents: 0, closedAllocationWindows: 0, closedCIEWindows: 0 });
   const [allocations, setAllocations] = useState([]);
   const [selectedSemester, setSelectedSemester] = useState('');
   const [semesters, setSemesters] = useState([]);
-
-  // Attendance
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [attendanceSemester, setAttendanceSemester] = useState('');
   const [attendanceStatus, setAttendanceStatus] = useState('open');
-
-  // CIE Marks
   const [cieRecords, setCieRecords] = useState([]);
   const [cieSemester, setCieSemester] = useState('');
   const [cieStatus, setCieStatus] = useState('open');
 
-  useEffect(() => {
-    loadDashboardData();
-  }, []);
+  useEffect(() => { loadDashboardData(); }, []);
 
   const loadDashboardData = async () => {
     setLoading(true);
@@ -55,11 +32,7 @@ export function HODDashboard() {
       const dashRes = await hodService.getDashboard();
       setStats(dashRes.data);
       setSemesters(dashRes.data.semesters || []);
-    } catch (err) {
-      setError('Failed to load dashboard data');
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { setError('Failed to load dashboard data'); } finally { setLoading(false); }
   };
 
   const loadAllocations = async (semester) => {
@@ -67,11 +40,7 @@ export function HODDashboard() {
       setLoading(true);
       const res = await hodService.getAllocationData({ semester });
       setAllocations(res.data.allocations || []);
-    } catch (err) {
-      setError('Failed to load allocations');
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { setError('Failed to load allocations'); } finally { setLoading(false); }
   };
 
   const loadAttendanceData = async (semester) => {
@@ -80,11 +49,7 @@ export function HODDashboard() {
       const res = await hodService.getAttendanceData({ semester });
       setAttendanceRecords(res.data.records || []);
       setAttendanceStatus(res.data.status || 'open');
-    } catch (err) {
-      setError('Failed to load attendance data');
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { setError('Failed to load attendance data'); } finally { setLoading(false); }
   };
 
   const loadCIEData = async (semester) => {
@@ -93,17 +58,10 @@ export function HODDashboard() {
       const res = await hodService.getCIEData({ semester });
       setCieRecords(res.data.records || []);
       setCieStatus(res.data.status || 'open');
-    } catch (err) {
-      setError('Failed to load CIE data');
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { setError('Failed to load CIE data'); } finally { setLoading(false); }
   };
 
-  const handleLogout = async () => {
-    await logout();
-    window.location.href = '/login';
-  };
+  const handleLogout = async () => { await logout(); window.location.href = '/login'; };
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
@@ -112,97 +70,84 @@ export function HODDashboard() {
     { id: 'cie-marks', label: 'CIE Marks', icon: '📝' },
   ];
 
+  const cardData = [
+    { label: 'Total Subjects', value: stats.totalSubjects, icon: '📚' },
+    { label: 'Total Students', value: stats.totalStudents, icon: '👨‍🎓' },
+    { label: 'Closed Allocations', value: stats.closedAllocationWindows, icon: '🔒' },
+    { label: 'Closed CIE Windows', value: stats.closedCIEWindows, icon: '📝' },
+  ];
+
+  const StatusBadge = ({ status }) => (
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginBottom: '16px',
+      padding: '6px 12px', borderRadius: '20px',
+      background: status === 'open' ? '#f0fdf4' : '#fff7f7',
+      border: `1px solid ${status === 'open' ? '#86efac' : '#fca5a5'}` }}>
+      <div style={{ width: '8px', height: '8px', borderRadius: '50%',
+        background: status === 'open' ? '#22c55e' : '#ef4444' }} />
+      <span style={{ fontSize: '12px', fontWeight: '600',
+        color: status === 'open' ? '#166534' : '#991b1b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        {status === 'open' ? 'Window Open' : 'Window Closed'}
+      </span>
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div style={{ minHeight: '100vh', background: '#f0f4f9', fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
       <Header userName={user?.name} userRole="HOD" onLogout={handleLogout} />
       <Sidebar items={navItems} activeSection={activeSection} onSectionChange={setActiveSection} />
       <MainContent>
         {error && <Alert type="error" message={error} onClose={() => setError(null)} />}
         {success && <Alert type="success" message={success} onClose={() => setSuccess(null)} />}
 
-        {/* Dashboard */}
         {activeSection === 'dashboard' && (
           <div>
-            <PageHeader title="Dashboard" subtitle="Department Overview & Quick Stats" />
+            <PageHeader title="Dashboard" subtitle="Department overview and quick statistics" />
             <DashboardGrid>
-              <DashboardCard label="Total Subjects" value={stats.totalSubjects} icon="📚" />
-              <DashboardCard label="Total Students" value={stats.totalStudents} icon="👨‍🎓" />
-              <DashboardCard label="Closed Allocations" value={stats.closedAllocationWindows} icon="🔒" />
-              <DashboardCard label="Closed CIE Windows" value={stats.closedCIEWindows} icon="📝" />
+              {cardData.map((c, i) => (
+                <DashboardCard key={i} _index={i} label={c.label} value={c.value} icon={c.icon} />
+              ))}
             </DashboardGrid>
           </div>
         )}
 
-        {/* Staff Allocations */}
         {activeSection === 'allocations' && (
           <div>
             <PageHeader title="Staff Allocations" subtitle="Manage staff-to-subject assignments" />
-            <Card className="mb-6">
-              <div className="mb-4">
-                <Select
-                  label="Select Semester"
-                  options={[
-                    { value: '', label: 'Select Semester' },
-                    ...semesters.map((s) => ({ value: s, label: `Semester ${s}` })),
-                  ]}
+            <Card>
+              <div style={{ marginBottom: '20px' }}>
+                <Select label="Select Semester"
+                  options={[{ value: '', label: 'Select Semester' }, ...semesters.map((s) => ({ value: s, label: `Semester ${s}` }))]}
                   value={selectedSemester}
-                  onChange={(e) => {
-                    setSelectedSemester(e.target.value);
-                    if (e.target.value) loadAllocations(e.target.value);
-                  }}
-                />
+                  onChange={(e) => { setSelectedSemester(e.target.value); if (e.target.value) loadAllocations(e.target.value); }} />
               </div>
               {selectedSemester && (
-                <div>
-                  <Table
-                    columns={[
-                      { key: 'staffName', label: 'Staff Member' },
-                      { key: 'subjectName', label: 'Subject' },
-                      { key: 'classCode', label: 'Class' },
-                    ]}
-                    data={allocations}
-                    actions={(row) => [
-                      <Button size="sm" variant="secondary">
-                        Edit
-                      </Button>,
-                    ]}
-                  />
-                </div>
+                <Table
+                  columns={[
+                    { key: 'staffName', label: 'Staff Member' },
+                    { key: 'subjectName', label: 'Subject' },
+                    { key: 'classCode', label: 'Class' },
+                  ]}
+                  data={allocations}
+                  actions={(row) => [<Button key="edit" size="sm" variant="secondary">Edit</Button>]}
+                />
               )}
             </Card>
           </div>
         )}
 
-        {/* Attendance */}
         {activeSection === 'attendance' && (
           <div>
             <PageHeader title="Attendance Management" subtitle="Monitor and manage attendance records" />
-            <Card className="mb-6">
-              <div className="mb-4">
-                <Select
-                  label="Select Semester"
-                  options={[
-                    { value: '', label: 'Select Semester' },
-                    ...semesters.map((s) => ({ value: s, label: `Semester ${s}` })),
-                  ]}
+            <Card>
+              <div style={{ marginBottom: '20px' }}>
+                <Select label="Select Semester"
+                  options={[{ value: '', label: 'Select Semester' }, ...semesters.map((s) => ({ value: s, label: `Semester ${s}` }))]}
                   value={attendanceSemester}
-                  onChange={(e) => {
-                    setAttendanceSemester(e.target.value);
-                    if (e.target.value) loadAttendanceData(e.target.value);
-                  }}
-                />
+                  onChange={(e) => { setAttendanceSemester(e.target.value); if (e.target.value) loadAttendanceData(e.target.value); }} />
               </div>
-
               {attendanceSemester && (
                 <>
-                  <div className="mb-4">
-                    <div className="inline-flex items-center gap-2">
-                      <span className={`w-3 h-3 rounded-full ${attendanceStatus === 'open' ? 'bg-success' : 'bg-error'}`} />
-                      <span className="text-sm font-medium">
-                        Attendance Window: <span className="uppercase font-bold">{attendanceStatus}</span>
-                      </span>
-                    </div>
-                  </div>
+                  <StatusBadge status={attendanceStatus} />
                   <Table
                     columns={[
                       { key: 'staffName', label: 'Staff Member' },
@@ -218,36 +163,19 @@ export function HODDashboard() {
           </div>
         )}
 
-        {/* CIE Marks */}
         {activeSection === 'cie-marks' && (
           <div>
             <PageHeader title="CIE Marks Management" subtitle="Monitor and manage CIE marks" />
-            <Card className="mb-6">
-              <div className="mb-4">
-                <Select
-                  label="Select Semester"
-                  options={[
-                    { value: '', label: 'Select Semester' },
-                    ...semesters.map((s) => ({ value: s, label: `Semester ${s}` })),
-                  ]}
+            <Card>
+              <div style={{ marginBottom: '20px' }}>
+                <Select label="Select Semester"
+                  options={[{ value: '', label: 'Select Semester' }, ...semesters.map((s) => ({ value: s, label: `Semester ${s}` }))]}
                   value={cieSemester}
-                  onChange={(e) => {
-                    setCieSemester(e.target.value);
-                    if (e.target.value) loadCIEData(e.target.value);
-                  }}
-                />
+                  onChange={(e) => { setCieSemester(e.target.value); if (e.target.value) loadCIEData(e.target.value); }} />
               </div>
-
               {cieSemester && (
                 <>
-                  <div className="mb-4">
-                    <div className="inline-flex items-center gap-2">
-                      <span className={`w-3 h-3 rounded-full ${cieStatus === 'open' ? 'bg-success' : 'bg-error'}`} />
-                      <span className="text-sm font-medium">
-                        CIE Window: <span className="uppercase font-bold">{cieStatus}</span>
-                      </span>
-                    </div>
-                  </div>
+                  <StatusBadge status={cieStatus} />
                   <Table
                     columns={[
                       { key: 'staffName', label: 'Staff Member' },
